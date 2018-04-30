@@ -1,0 +1,54 @@
+#!/usr/bin/env ruby
+
+require "colorize"
+require "json"
+
+def args()
+  q = "q="
+  ret = []
+  ARGV.select{|x| x != "-o" }.each_with_index do |a, i|
+     if /^(-l|--language)$/ =~ a
+       ret.push "language:#{ARGV[i+1]}+"
+     elsif /^(-s|--sort)$/ =~ a
+       ret.push "sort=#{ARGV[i+1]}"
+     elsif a == "desc"
+       ret.push "order=#{a}"
+     else
+       q += "#{a}+"
+     end
+  end
+  ret.push("location:Tokyo+")
+  ret.push("repos:%3E42")
+  return q + ret.join("")
+end
+
+def collect_developers()
+  cmd = "curl -s https://api.github.com/search/users?#{args}"
+  puts cmd.green
+  return  JSON.parse(`#{cmd}`)
+end
+
+def enlist_developers(developers)
+  developers["items"].each do |member|
+    puts "name:  #{member['login']}(id: #{member['id']})"
+    puts "URL:   #{member['html_url']}"
+    puts "Score: #{member['score']}"
+    puts
+  end
+  puts "total size: #{developers["items"].size}"
+end
+
+def open_developers(developers)
+  developers["items"].each do |member|
+    puts ("opening #{member['html_url']}...")
+    system("open #{member['html_url']}")
+  end
+end
+
+developers = collect_developers()
+
+if ARGV.include?("-o")
+  open_developers(developers)
+else
+  enlist_developers(developers)
+end
